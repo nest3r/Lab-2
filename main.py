@@ -1,20 +1,38 @@
-from csv import reader
+import xml.etree.ElementTree as ET
 
+def parse_currency_xml(file_name):
+    tree = ET.parse(file_name)
+    root = tree.getroot()
 
-flag = 0
-output = open('result.txt', 'w')
-search = input('Search for: ')
-with open('civic.csv', 'r', encoding='windows-1251') as csvfile:
-    table = reader(csvfile, delimiter=';')
-    for row in table:
-        lower_case = row[2].lower()
-        index = lower_case.find(search.lower())
-        if index != -1:
-            print(row[2])
-            flag = 1
-            output.write(f'{row[0]}. {row[2]}. Цена {row[8]} рублей.\n')
+    date = root.attrib['Date']
 
-    if flag == 0:
-        print('Nothing found.')
+    currencies = []
+    for currency in root.findall('Valute'):
+        nominal = int(currency.find('Nominal').text)
+        if nominal == 10 or nominal == 100:
+            char_code = currency.find('CharCode').text
+            name = currency.find('Name').text
 
-output.close()
+            year = None
+            if date is not None:
+                year = int(date.split('.')[-1])
+
+            if year is not None and (year == 2015 or year == 2018):
+                currency_data = {
+                    'CharCode': char_code,
+                    'Name': name,
+                    'Year': year
+                }
+                currencies.append(currency_data)
+
+    return date, currencies
+
+file_name = 'currency.xml'
+date, currencies = parse_currency_xml(file_name)
+
+print("Date:", date)
+for currency in currencies:
+    print(f"CharCode: {currency['CharCode']}")
+    print(f"Name: {currency['Name']}")
+    print(f"Year: {currency['Year']}")
+    print()
